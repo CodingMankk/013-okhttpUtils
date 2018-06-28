@@ -15,7 +15,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
+import okhttp3.Cache;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
@@ -40,9 +44,11 @@ public class MainActivity extends AppCompatActivity {
 
         Logger.init("MainActivity");
 
+//        okHttpCancelCall();
+        okHttpTimeout();
+
 
     }
-
 
 
     /**
@@ -60,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         Call call = client.newCall(request);
         //[1]同步请求-会阻塞，使用很少；
         call.execute();
-//        [2]异步请求-请求是在线程，更新数据需要使用handler等；
+        //        [2]异步请求-请求是在线程，更新数据需要使用handler等；
         call.enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -74,13 +80,13 @@ public class MainActivity extends AppCompatActivity {
                     //response.body返回数据；
                     //[1]
                     String string = response.body().string();
-//                [2]
+                    //                [2]
                     byte[] bytes = response.body().bytes();
-//                [3]
+                    //                [3]
                     InputStream inputStream = response.body().byteStream();
-//                [4]
+                    //                [4]
                     Reader reader = response.body().charStream();
-//                [5]
+                    //                [5]
                     BufferedSource source = response.body().source();
                 }
 
@@ -129,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 //请求成功的回调；
-//                response 是请求到的数据；
+                //                response 是请求到的数据；
             }
         });
     }
@@ -145,7 +151,8 @@ public class MainActivity extends AppCompatActivity {
 
         //读取外部的sd卡的文件上传；
         File file = new File(Environment.getExternalStorageDirectory(), "mimi.mp4");
-        RequestBody fileBody = RequestBody.create(MediaType.parse("application/octet-stream"), file);
+        RequestBody fileBody = RequestBody.create(MediaType.parse("application/octet-stream"),
+                file);
 
         Request request = new Request.Builder()
                 .url(url)
@@ -178,16 +185,16 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [4-1]post 提交表单 使用 FormEncodingBuilder（2.0）FormBody（3.0） 来构建和HTML <form> 标签相同效果的请求体。
-     *
-     *
+     * <p>
+     * <p>
      * 用户注册的情况,需要你输入用户名,密码,还有上传头像,这其实就是一个表单,
      * 主要的区别就在于构造不同的RequestBody传递给post方法即可
-
+     * <p>
      * 表单数据的提交需要：compile 'com.squareup.okio:okio:1.11.0'
-
+     * <p>
      * MuiltipartBody,是RequestBody的一个子类,提交表单利用MuiltipartBody来构建一个RequestBody,
      * 下面的代码是发送一个包含用户民、密码、头像的表单到服务端
-
+     * <p>
      * 【注意】
      * 【1】如果提交的是表单,一定要设置setType(MultipartBody.FORM)这一句
      * 【2】 addFormDataPart("avatar","avatar.png",requestBodyFile)
@@ -254,9 +261,7 @@ public class MainActivity extends AppCompatActivity {
      * 如果 Content-Length 和 Content-Type 可用的话，他们会被自动添加到请求头中
      *
      * @param url
-     * @throws Exception
-     *
-     * 【注意】上面的描述是基于okhttp2.0;代码是基于okhttp3.0；
+     * @throws Exception 【注意】上面的描述是基于okhttp2.0;代码是基于okhttp3.0；
      */
     private void okHttpPostBlockData(String url) throws Exception {
 
@@ -269,7 +274,8 @@ public class MainActivity extends AppCompatActivity {
                 .addPart(Headers.of("Content-Disposition", "form-data; name=\"title\""),
                         RequestBody.create(null, "Square Logo"))
                 .addPart(Headers.of("Content-Disposition", "form-data; name=\"image\""),
-                        RequestBody.create(MEDIA_TYPE_PNG, new File("website/static/logo-square.png")))
+                        RequestBody.create(MEDIA_TYPE_PNG, new File("website/static/logo-square" +
+                                ".png")))
                 .build();
 
         Request request = new Request.Builder()
@@ -320,12 +326,11 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [6]使用Gson来解析JSON响应
-     *
+     * <p>
      * Gson是一个在JSON和Java对象之间转换非常方便的api。这里我们用Gson来解析Github API的JSON响应。
      * 注意： ResponseBody.charStream() 使用响应头 Content-Type 指定的字符集来解析响应体。默认是UTF-8。
-     *
      */
-    private void ParseGson(String url){
+    private void ParseGson(String url) {
         OkHttpClient okHttpClient = new OkHttpClient();
         final Gson gson = new Gson();
         //默认是get请求；
@@ -344,7 +349,7 @@ public class MainActivity extends AppCompatActivity {
                 if (!response.isSuccessful())
                     throw new IOException("Unexpected code " + response);
                 Gist gist = gson.fromJson(response.body().charStream(), Gist.class);
-                for (Map.Entry<String,GistFile> entry:gist.files.entrySet()){
+                for (Map.Entry<String, GistFile> entry : gist.files.entrySet()) {
                     System.out.println(entry.getKey());
                     System.out.println(entry.getValue().content);
                 }
@@ -352,22 +357,15 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-
-
     }
 
-    private static class Gist{
-        Map<String,GistFile> files;
+    private static class Gist {
+        Map<String, GistFile> files;
     }
 
-    private static class GistFile{
+    private static class GistFile {
         String content;
     }
-
-
-
-
-
 
 
     /**
@@ -397,7 +395,8 @@ public class MainActivity extends AppCompatActivity {
 
                     //读到文件中;
                     int len = 0;
-                    File file = new File(Environment.getExternalStorageDirectory(), "downLoadFile.png");
+                    File file = new File(Environment.getExternalStorageDirectory(), "downLoadFile" +
+                            ".png");
                     FileOutputStream fos = new FileOutputStream(file);
 
                     byte[] buf = new byte[1024];
@@ -460,7 +459,8 @@ public class MainActivity extends AppCompatActivity {
 
                     //读到文件中;
                     int len = 0;
-                    File file = new File(Environment.getExternalStorageDirectory(), "downLoadFile.png");
+                    File file = new File(Environment.getExternalStorageDirectory(), "downLoadFile" +
+                            ".png");
                     FileOutputStream fos = new FileOutputStream(file);
 
                     byte[] buf = new byte[1024];
@@ -508,10 +508,12 @@ public class MainActivity extends AppCompatActivity {
 
         //读取外部的sd卡的文件上传；
         File file = new File(Environment.getExternalStorageDirectory(), "mimi.mp4");
-//        RequestBody fileBody = RequestBody.create(MediaType.parse("application/octet-stream"),file);
+        //        RequestBody fileBody = RequestBody.create(MediaType.parse
+        // ("application/octet-stream"),file);
 
         //*****此处使用的RequestBody是经过修改；
-        RequestBody fileBody = progressRequestBody.create(MediaType.parse("application/octet-stream"), file);
+        RequestBody fileBody = progressRequestBody.create(MediaType.parse
+                ("application/octet-stream"), file);
 
         Request request = new Request.Builder()
                 .url(url)
@@ -575,6 +577,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [10]异步get
+     *
      * @param url
      */
     private void okHttpGetASyncHeader(String url) {
@@ -600,7 +603,8 @@ public class MainActivity extends AppCompatActivity {
                 int len = headers.size();
                 for (int i = 0; i < len; i++) {
                     //response的头部的每个信息
-                    System.out.println("responseHeaders:" + headers.name(i) + ":" + headers.value(i));
+                    System.out.println("responseHeaders:" + headers.name(i) + ":" + headers.value
+                            (i));
                 }
                 //打印头部的所有信息；
                 System.out.println(response.body().string());
@@ -611,16 +615,16 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [11] 提取响应头
-     *
+     * <p>
      * 典型的HTTP头 像是一个 Map<String, String> :每个字段都有一个或没有值。
      * 但是一些头允许多个值，像Guava的Multimap。
-     *
+     * <p>
      * 例如：HTTP响应里面提供的 Vary 响应头，就是多值的。OkHttp的api试图让这些情况都适用。
      * 【header(name, value)】 可以设置唯一的name、value。
      * 如果已经有值，旧的将被移除，然后添加新的。
-     *
+     * <p>
      * 【addHeader(name, value)】 可以添加多值（添加，不移除已有的）。
-     *
+     * <p>
      * 当读取响应头时，使用 header(name) 返回最后出现的name、value。
      * 通常情况这也是唯一的name、value。
      * 如果没有值，那么 header(name) 将返回null。
@@ -628,7 +632,7 @@ public class MainActivity extends AppCompatActivity {
      * 为了获取所有的Header，Headers类支持按index访问。
      */
 
-    private void addHeaders(String url){
+    private void addHeaders(String url) {
         OkHttpClient okHttpClient = new OkHttpClient();
 
         Request request = new Request.Builder()
@@ -656,12 +660,12 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [11]post 提交String
-     *
+     * <p>
      * 提交了一个markdown文档到web服务，以HTML方式渲染markdown。
      * 因为整个请求体都在内存中，因此避免使用此api提交大文档（大于1MB）。
      */
 
-    private void okHttpPostString(String url){
+    private void okHttpPostString(String url) {
         MediaType mediaType = MediaType.parse("text/x-markdown; charset=utf-8");
         OkHttpClient okHttpClient = new OkHttpClient();
         String postBody = ""
@@ -699,13 +703,13 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [12]post 方式提交流
-     *
+     * <p>
      * 以流的方式POST提交请求体。请求体的内容由流写入产生。
      * 这个例子是流直接写入Okio的BufferedSink。
      * 你的程序可能会使用 OutputStream ，你可以使用 BufferedSink.outputStream()来获取
      */
 
-    private void okHttpPostStream(String url){
+    private void okHttpPostStream(String url) {
 
         final MediaType mediaType = MediaType.parse("text/x-markdown; charset=utf-8");
 
@@ -723,12 +727,12 @@ public class MainActivity extends AppCompatActivity {
                  * 关键的方法：sink.writeUtf8
                  */
                 sink.writeUtf8("Numbers\n");
-                for (int i=2; i<=997; i++){
-                    sink.writeUtf8(String.format(" * %s = %s\n",i,factor(i)));
+                for (int i = 2; i <= 997; i++) {
+                    sink.writeUtf8(String.format(" * %s = %s\n", i, factor(i)));
                 }
             }
 
-            private String factor(int n){
+            private String factor(int n) {
                 for (int i = 2; i < n; i++) {
                     int x = n / i;
                     if (x * i == n) return factor(x) + " × " + i;
@@ -758,24 +762,200 @@ public class MainActivity extends AppCompatActivity {
 
 
     /**
-     *
-     * [13]响应缓存
-     * 为了缓存响应，你需要一个你可以读写的缓存目录，和缓存大小的限制。
-     * 这个缓存目录应该是私有的，不信任的程序应不能读取缓存内容。
-     * 一个缓存目录同时拥有多个缓存访问是错误的。
-     * 大多数程序只需要调用一次 new OkHttp() ，在第一次调用时配置好缓存，然后其他地方只需要调用这个实例就可以了。
+     * [13]响应缓存----没有弄明白；
+     * 缓存响应：需要建立可以读写的缓存目录和限定缓存大小。
+     * 建立的缓存目录应该是私有的，不信任的程序应不能读取缓存内容。
+     * 一个缓存目录不能同时拥有多个缓存访问。
+     * 大多数程序只需要调用一次 new OkHttp() ，在第一次调用时配置好缓存，然后其他使用到的地方只需要调用这个实例。
      * 否则两个缓存示例互相干扰，破坏响应缓存，而且有可能会导致程序崩溃。
      * 响应缓存使用HTTP头作为配置。
      * 你可以在请求头中添加 Cache-Control: max-stale=3600 ,OkHttp缓存会支持。
      * 你的服务通过响应头确定响应缓存多长时间，例如使用 Cache-Control: max-age=9600
-     *
      */
 
-    private void okHttCacheResponse(File cacheDirector){
-        int cacheSize = 10*1024*1024;
-        new Cache();
+    private void okHttCacheResponse(File cacheDirector) {
+
+        //使用OkHttp的Cache，首先需要指定缓存的路径和大小
+        int cacheSize = 10 * 1024 * 1024;
+        Cache cache = new Cache(cacheDirector, cacheSize);
+
+        OkHttpClient okHttpClient
+                = new OkHttpClient()
+                .newBuilder()
+                .cache(cache)
+                .build();
+
+        Request request = new Request.Builder()
+                .url("http://publicobject.com/helloworld.txt")
+                .build();
+
+        Call call1 = okHttpClient.newCall(request);
+        call1.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response1) throws IOException {
+                if (!response1.isSuccessful())
+                    throw new IOException("Unexpected code " + response1);
+
+                String s = response1.body().string();
+                Logger.d("response1:"+s);
+                Logger.d("response1 Cache response:"+response1.cacheResponse());
+                Logger.d("response1 network response:"+response1.networkResponse());
+            }
+        });
+
+        Call call2 = okHttpClient.newCall(request);
+        call2.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response2) throws IOException {
+                if (!response2.isSuccessful())
+                    throw new IOException("Unexpected code " + response2);
+
+                String s = response2.body().string();
+                Logger.d("response2:"+s);
+                Logger.d("response2 Cache response:"+response2.cacheResponse());
+                Logger.d("response2 network response:"+response2.networkResponse());
+            }
+        });
+
+//        System.out.println("Response 2 equals Response 1? " +
+//                response2.equals(response1));
+    }
+
+    /**
+     * [14]取消一个Call--没有弄明白；
+     *
+     * 使用 Call.cancel() 可以立即停止掉一个正在执行的call。
+     * 如果一个线程正在写请求或者读响应，将会引发IOException 。
+     * 当call没有必要的时候，使用这个api可以节约网络资源。
+     * 例如当用户离开一个应用时。不管同步还是异步的call都可以取消。
+     * 你可以通过tags来同时取消多个请求。
+     * 当你构建一请求时，使用 RequestBuilder.tag(tag) 来分配一个标签。
+     * 之后你就可以用 OkHttpClient.cancel(tag) 来取消所有带有这个tag的call
+     */
+    private void okHttpCancelCall(){
+
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+        OkHttpClient okHttpClient = new OkHttpClient();
+
+        Request request = new Request.Builder()
+                .url("http://httpbin.org/delay/2")// This URL is served with a 2 second delay.
+                .tag(1)
+                .build();
+
+        final long nanoTime = System.nanoTime();
+        final Call call = okHttpClient.newCall(request);
+
+        // Schedule a job to cancel the call in 1 second.
+        executor.schedule(new Runnable() {
+            @Override
+            public void run() {
+                System.out.printf("%.2f Canceling +++++ call.%n",(System.nanoTime() - nanoTime) / 1e9f);
+                call.cancel();
+                System.out.printf("%.2f Canceled ------call.%n", (System.nanoTime() - nanoTime) / 1e9f);
+            }
+        },1, TimeUnit.SECONDS);
+
+        System.out.printf("%.2f Canceling #### call.%n",(System.nanoTime() - nanoTime) / 1e9f);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                System.out.printf("%.2f Call was  $$$$$ bexpected to fail, but completed: %s%n",
+                        (System.nanoTime() - nanoTime) / 1e9f, response);
+            }
+        });
 
 
+    }
+
+    /**
+     * [15]超时
+     * 没有响应时使用超时结束call。
+     * 没有响应的原因可能是客户点链接问题、服务器可用性问题或者这之间的其他东西。
+     * OkHttp支持连接，读取和写入超时。
+     */
+
+    private void okHttpTimeout(){
+        OkHttpClient okHttpClient = new OkHttpClient().newBuilder()
+                .connectTimeout(1,TimeUnit.SECONDS)
+                .readTimeout(1,TimeUnit.SECONDS)
+                .writeTimeout(1,TimeUnit.SECONDS)
+                .build();
+
+        Request request = new Request.Builder()
+                .url("http://httpbin.org/delay/2") // This URL is served with a 2 second delay.
+                .build();
+
+        Call call = okHttpClient.newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                System.out.println("Response completed: " + response.body().string());
+            }
+        });
+    }
+
+    /**
+     * [16]每个call的配置--clone
+     * 使用 OkHttpClient ，所有的HTTP Client配置包括代理设置、超时设置、缓存设置。当你需要为单个call改变
+     * 配置的时候，clone 一个 OkHttpClient 。这个api将会返回一个浅拷贝（shallow copy），你可以用来单独自
+     * 定义。下面的例子中，我们让一个请求是500ms的超时、另一个是3000ms的超时。
+     */
+
+
+  /*  public void run() throws Exception {
+        final OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url("http://httpbin.org/delay/1") // This URL is served with a 1 second delay.
+                .build();
+        try {
+            Response response = client.clone() // Clone to make a customized OkHttp for this
+            request..setReadTimeout(500, TimeUnit.MILLISECONDS)
+                    .newCall(request)
+                    .execute();
+            System.out.println("Response 1 succeeded: " + response);
+        } catch (IOException e) {
+            System.out.println("Response 1 failed: " + e);
+        }
+        try {
+            Response response = client.clone() // Clone to make a customized OkHttp for this
+            request..setReadTimeout(3000, TimeUnit.MILLISECONDS)
+                    .newCall(request)
+                    .execute();
+            System.out.println("Response 2 succeeded: " + response);
+        } catch (IOException e) {
+            System.out.println("Response 2 failed: " + e);
+        }
+    }*/
+
+
+    private void OkHttpCallConfigure(){
+        OkHttpClient okHttpClient = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url("http://httpbin.org/delay/1") // This URL is served with a 1 second delay
+                .build();
+
+        Call call = okHttpClient.newCall(request);
+        Call clone = call.clone();
 
     }
 
