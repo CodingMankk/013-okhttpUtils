@@ -30,8 +30,15 @@ dependencies {
 
 
     compile 'com.orhanobut:logger:1.15'
+
 //    compile 'com.squareup.okhttp3:mockwebserver:3.10.0'
-    compile 'com.squareup.okhttp:okhttp:2.4.0'
-    compile 'com.squareup.okio:okio:1.5.0'
+
+    compile 'com.squareup.okhttp3:okhttp:3.5.0' //okhttp的请求包；
+    compile 'com.squareup.okio:okio:1.11.0'    //post数据格式的包；
+
+    compile 'com.google.code.gson:gson:2.6.2'
+
+//    compile 'com.squareup.okhttp:okhttp:2.4.0'
+//    compile 'com.squareup.okio:okio:1.5.0'
 
 }
