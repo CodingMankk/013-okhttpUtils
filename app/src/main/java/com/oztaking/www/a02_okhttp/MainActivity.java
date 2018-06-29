@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.util.SparseArray;
 
 import com.google.gson.Gson;
 import com.orhanobut.logger.Logger;
@@ -14,6 +15,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -22,16 +26,23 @@ import java.util.concurrent.TimeUnit;
 import okhttp3.Cache;
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.Cookie;
+import okhttp3.CookieJar;
 import okhttp3.FormBody;
 import okhttp3.Headers;
+import okhttp3.HttpUrl;
+import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.WebSocket;
+import okhttp3.WebSocketListener;
 import okio.BufferedSink;
 import okio.BufferedSource;
+import okio.ByteString;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -55,18 +66,34 @@ public class MainActivity extends AppCompatActivity {
      * [1]GET请求
      */
     private void okHttpGet(String url) throws IOException {
+        //1,创建okHttpClient对象
         OkHttpClient client = new OkHttpClient();
-        //可以通过Request.Builder设置更多的参数比如： header、 method等
 
+        HashMap<String, String> urlParams = new HashMap<>();
+        HashMap<String, String> urlHeaders = new HashMap<>();
+
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
+        if (urlParams != null) {
+            for (String key : urlParams.keySet()) {
+                urlBuilder.setQueryParameter(key, urlParams.get(key));
+            }
+        }
+
+        //2,创建一个Request
+        //可以通过Request.Builder设置更多的参数比如： header、 method等
         Request request = new Request.Builder()
+//              .url(url)
+                .url(urlBuilder.build())
+                .headers(urlHeaders == null ? new Headers.Builder().build() : Headers.of(urlHeaders))
                 .get()  //get请求；
-                .url(url)
                 .build();
 
+        //3,新建一个call对象
         Call call = client.newCall(request);
-        //[1]同步请求-会阻塞，使用很少；
+        //[4-1]同步请求-会阻塞，使用很少；
         call.execute();
-        //        [2]异步请求-请求是在线程，更新数据需要使用handler等；
+        //[4-2]异步请求-请求是在线程，更新数据需要使用handler等；
+        //请求加入调度，这里是异步Get请求回调
         call.enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -92,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-
     }
 
     /**
@@ -182,6 +208,74 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * [多个文件的上传]
+     */
+
+    private void postMultiFile(String url){
+
+        HashMap<String, String> urlHeaders = new HashMap<>();
+
+        OkHttpClient client = new OkHttpClient();
+
+        // form 表单形式上传,MultipartBody的内容类型是表单格式，multipart/form-data
+        MultipartBody.Builder multiPartBodyBuilder= new MultipartBody
+                .Builder()
+                .setType(MultipartBody.FORM);
+
+        //参数
+        HashMap<String,String> params = new HashMap<>();
+        if (params != null) {
+            for (String key : params.keySet()) {
+                if (params.get(key)!=null){
+                    //增加一系列的参数；
+                    multiPartBodyBuilder.addFormDataPart(key, params.get(key));
+                }
+            }
+        }
+
+        //需要上传的文件，需要携带上传的文件（小型文件 不建议超过500K）
+        HashMap<String,String> files= new HashMap<>();
+        if (files != null) {
+            for (String key : files.keySet()) {
+                //重点：RequestBody create(MediaType contentType, final File file)构造文件请求体RequestBody
+                RequestBody requestBody = RequestBody.create(MediaType.parse("multipart/form-data"), files.get(key));
+                multiPartBodyBuilder.addFormDataPart(key, files.get(key).getClass().getName(),requestBody);
+            }
+        }
+
+        //构造请求request
+        Request request = new Request.Builder()
+                .headers(urlHeaders == null ? new Headers.Builder().build() : Headers.of(urlHeaders))
+                .url(url)
+                .post(multiPartBodyBuilder.build())
+                .build();
+
+        //异步执行请求
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                //非主线程
+                if (response.isSuccessful()) {
+                    String str = response.body().string();
+                    Log.i("tk", response.message() + " , body " + str);
+
+                } else {
+                    Log.i("tk" ,response.message() + " error : body " + response.body().string());
+                }
+            }
+        });
+    }
+
+
+
+
+
 
     /**
      * [4-1]post 提交表单 使用 FormEncodingBuilder（2.0）FormBody（3.0） 来构建和HTML <form> 标签相同效果的请求体。
@@ -223,10 +317,29 @@ public class MainActivity extends AppCompatActivity {
                 .addFormDataPart("avatar", "avatar.png", requestBodyFile)
                 .build();
 
+        //POST参数构造MultipartBody.Builder，表单提交
+        HashMap<String, String> params = new HashMap<>();
+        MultipartBody.Builder MultipartBodyBuilder  = new MultipartBody.Builder()
+                                              .setType(MultipartBody.FORM);
+        if (params != null) {
+            for (String key : params.keySet()) {
+                if (params.get(key) != null) {
+                    MultipartBodyBuilder.addFormDataPart(key, params.get(key));
+                }
+            }
+        }
+
+        // 构造Request->call->执行
         Request request = new Request.Builder()
                 .url(url)
-                .post(multipartBody)
+                .post(MultipartBodyBuilder.build())//参数放在body体里
                 .build();
+
+
+//        Request request = new Request.Builder()
+//                .url(url)
+//                .post(multipartBody)
+//                .build();
 
         OkHttpClient okHttpClient = new OkHttpClient();
         Call call = okHttpClient.newCall(request);
@@ -323,6 +436,93 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * [6]大文件上传
+     *
+     * 服务端的接口：
+     *
+     * url：domain/sync/img/upload
+     * method: POST
+     * //请求参数
+     * data = {
+     *  'img_md5': 'dddddsds',
+     *  'total': 10,  #总的分片数
+     *  'index': 5,   #该分片所在的位置, start by 1
+     *  }
+     * 请求返回值json:
+     * {
+     *  'status': 206/205/400/409/500,
+     *  'msg': '分片上传成功/上传图片成功/参数错误/上传数据重复/上传失败'
+     *  'data': { # 205时有此字段
+     *  'img_url': 'https://foo.jpg',
+     *  }
+     * }
+     *
+     * 只需要图片的md5,总的分片数，该分片的位置，当一块传输成功时返回206，当全部块
+     * 传完成是返回206，并返回该图片在服务器的url
+     *
+     */
+
+    private static class okHttpBigFileUpLoad{
+        //[1]文件路径
+        String path = "xxx.jpg";
+
+        public static final int FILE_BLOCK_SIZE = 500 * 1024;//500k
+
+        /**
+         * [2]文件块对象
+         * 文件块描述
+         * */
+        public static class FileBlock {
+            public long start;//起始字节位置
+            public long end;//结束字节位置
+            public int index;//文件分块索引
+        }
+
+        //[3]计算切块,存储在数组
+        final SparseArray<FileBlock> blockArray = splitFile(path, FILE_BLOCK_SIZE);
+        /**
+         * 文件分块
+         *
+         * @param filePath 文件路径
+         * @param blockSize 块大小
+         *
+         * @return 分块描述集合 文件不存在时返回空
+         */
+        public static SparseArray<FileBlock> splitFile(String filePath, long blockSize) {
+            File file = new File(filePath);
+            if (!file.exists()) {
+                return null;
+            }
+
+            SparseArray<FileBlock> blockArray = new SparseArray<>();
+            int i = 0;
+            int start = 0;
+            while (start < file.length()) {
+                i++;
+                FileBlock fileBlock = new FileBlock();
+                fileBlock.index = i;
+                fileBlock.start = start;
+                start += blockSize;
+                fileBlock.end = start;
+                blockArray.put(i, fileBlock);
+            }
+            blockArray.get(i).end = file.length();
+            return blockArray;
+        }
+
+        /**
+         * 对文件块分块多线程异步上传
+         */
+
+
+
+
+
+    }
+
+
+
 
     /**
      * [6]使用Gson来解析JSON响应
@@ -332,12 +532,16 @@ public class MainActivity extends AppCompatActivity {
      */
     private void ParseGson(String url) {
         OkHttpClient okHttpClient = new OkHttpClient();
+
         final Gson gson = new Gson();
+
         //默认是get请求；
         final Request request = new Request.Builder()
                 .url("https://api.github.com/gists/c2a7c39532239ff261be")
                 .build();
+
         Call call = okHttpClient.newCall(request);
+
         call.enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -615,16 +819,12 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [11] 提取响应头
-     * <p>
      * 典型的HTTP头 像是一个 Map<String, String> :每个字段都有一个或没有值。
      * 但是一些头允许多个值，像Guava的Multimap。
-     * <p>
      * 例如：HTTP响应里面提供的 Vary 响应头，就是多值的。OkHttp的api试图让这些情况都适用。
      * 【header(name, value)】 可以设置唯一的name、value。
      * 如果已经有值，旧的将被移除，然后添加新的。
-     * <p>
      * 【addHeader(name, value)】 可以添加多值（添加，不移除已有的）。
-     * <p>
      * 当读取响应头时，使用 header(name) 返回最后出现的name、value。
      * 通常情况这也是唯一的name、value。
      * 如果没有值，那么 header(name) 将返回null。
@@ -660,7 +860,6 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [11]post 提交String
-     * <p>
      * 提交了一个markdown文档到web服务，以HTML方式渲染markdown。
      * 因为整个请求体都在内存中，因此避免使用此api提交大文档（大于1MB）。
      */
@@ -763,6 +962,8 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [13]响应缓存----没有弄明白；
+     * 【注意】只支持get请求的缓存；
+     * <p>
      * 缓存响应：需要建立可以读写的缓存目录和限定缓存大小。
      * 建立的缓存目录应该是私有的，不信任的程序应不能读取缓存内容。
      * 一个缓存目录不能同时拥有多个缓存访问。
@@ -802,9 +1003,9 @@ public class MainActivity extends AppCompatActivity {
                     throw new IOException("Unexpected code " + response1);
 
                 String s = response1.body().string();
-                Logger.d("response1:"+s);
-                Logger.d("response1 Cache response:"+response1.cacheResponse());
-                Logger.d("response1 network response:"+response1.networkResponse());
+                Logger.d("response1:" + s);
+                Logger.d("response1 Cache response:" + response1.cacheResponse());
+                Logger.d("response1 network response:" + response1.networkResponse());
             }
         });
 
@@ -821,9 +1022,9 @@ public class MainActivity extends AppCompatActivity {
                     throw new IOException("Unexpected code " + response2);
 
                 String s = response2.body().string();
-                Logger.d("response2:"+s);
-                Logger.d("response2 Cache response:"+response2.cacheResponse());
-                Logger.d("response2 network response:"+response2.networkResponse());
+                Logger.d("response2:" + s);
+                Logger.d("response2 Cache response:" + response2.cacheResponse());
+                Logger.d("response2 network response:" + response2.networkResponse());
             }
         });
 
@@ -833,7 +1034,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [14]取消一个Call--没有弄明白；
-     *
+     * <p>
      * 使用 Call.cancel() 可以立即停止掉一个正在执行的call。
      * 如果一个线程正在写请求或者读响应，将会引发IOException 。
      * 当call没有必要的时候，使用这个api可以节约网络资源。
@@ -842,7 +1043,7 @@ public class MainActivity extends AppCompatActivity {
      * 当你构建一请求时，使用 RequestBuilder.tag(tag) 来分配一个标签。
      * 之后你就可以用 OkHttpClient.cancel(tag) 来取消所有带有这个tag的call
      */
-    private void okHttpCancelCall(){
+    private void okHttpCancelCall() {
 
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
         OkHttpClient okHttpClient = new OkHttpClient();
@@ -859,13 +1060,13 @@ public class MainActivity extends AppCompatActivity {
         executor.schedule(new Runnable() {
             @Override
             public void run() {
-                System.out.printf("%.2f Canceling +++++ call.%n",(System.nanoTime() - nanoTime) / 1e9f);
+                System.out.printf("%.2f Canceling +++++ call.%n", (System.nanoTime() - nanoTime) / 1e9f);
                 call.cancel();
                 System.out.printf("%.2f Canceled ------call.%n", (System.nanoTime() - nanoTime) / 1e9f);
             }
-        },1, TimeUnit.SECONDS);
+        }, 1, TimeUnit.SECONDS);
 
-        System.out.printf("%.2f Canceling #### call.%n",(System.nanoTime() - nanoTime) / 1e9f);
+        System.out.printf("%.2f Canceling #### call.%n", (System.nanoTime() - nanoTime) / 1e9f);
         call.enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -889,11 +1090,12 @@ public class MainActivity extends AppCompatActivity {
      * OkHttp支持连接，读取和写入超时。
      */
 
-    private void okHttpTimeout(){
+    private void okHttpTimeout() {
         OkHttpClient okHttpClient = new OkHttpClient().newBuilder()
-                .connectTimeout(1,TimeUnit.SECONDS)
-                .readTimeout(1,TimeUnit.SECONDS)
-                .writeTimeout(1,TimeUnit.SECONDS)
+                .connectTimeout(1, TimeUnit.SECONDS)
+                .readTimeout(1, TimeUnit.SECONDS)
+                .writeTimeout(1, TimeUnit.SECONDS)
+                .pingInterval(10, TimeUnit.SECONDS) //websocket 轮训间隔
                 .build();
 
         Request request = new Request.Builder()
@@ -946,9 +1148,7 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("Response 2 failed: " + e);
         }
     }*/
-
-
-    private void OkHttpCallConfigure(){
+    private void OkHttpCallConfigure() {
         OkHttpClient okHttpClient = new OkHttpClient();
         Request request = new Request.Builder()
                 .url("http://httpbin.org/delay/1") // This URL is served with a 1 second delay
@@ -959,14 +1159,131 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * [17]Cookie 保存
+     * Request经常都要携带Cookie，上面说过request创建时可以通过header设置参数，Cookie也是参数之一
+     * 然后可以从返回的response里得到新的Cookie，可能得想办法把Cookie保存起来。
+     * 但是OkHttp可以不用我们管理Cookie，自动携带，保存和更新Cookie。
+     * 方法是在创建OkHttpClient设置管理Cookie的CookieJar
+     */
+    private void OkHttpCookieSave(String url) {
+
+        final HashMap<String, List<Cookie>> cookieStore = new HashMap<>();
+
+        OkHttpClient okHttpClient = new OkHttpClient().newBuilder()
+                .cookieJar(new CookieJar() {
+                    @Override
+                    public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+                        // 保存cookie通常使用SharedPreferences
+                        cookieStore.put(url.host(), cookies);
+                    }
+
+                    @Override
+                    public List<Cookie> loadForRequest(HttpUrl url) {
+                        // 从保存位置读取，注意此处不能为空，否则会导致空指针
+                        List<Cookie> cookies = cookieStore.get(url.host());
+                        return cookies != null ? cookies : new ArrayList<Cookie>();
+
+                    }
+                })
+                .build();
+
+        Request request = new Request.Builder()
+                .url(url)
+                .header("Cookie", "xxx") //添加cookie；
+                .build();
+    }
 
 
+    /**
+     * [21]添加拦截器
+     * okHttp3的实现使用的是链式的拦截器，同时也开放了自定义拦截器接口
+     */
+
+    private void okHttpAddInterceptor() {
+        new OkHttpClient.Builder()
+                // 此种拦截器将会在请求开始的时候调用
+                .addInterceptor(new Interceptor() {
+                    @Override
+                    public Response intercept(Chain chain) throws IOException {
+                        return null;
+                    }
+                })
+                // 连接成功，读写数据前调用
+                .addNetworkInterceptor(new Interceptor() {
+                    @Override
+                    public Response intercept(Chain chain) throws IOException {
+                        return null;
+                    }
+                }).build();
+    }
+
+    /**
+     * [22]https的支持添加
+     * okhttp3完全支持https，设置证书即可
+     * 未完成，报错；
+     */
+    private void okHttpHttps() {
+        OkHttpClient okHttpClient = new OkHttpClient.Builder()
+//                .sslSocketFactory(SSLSocketFactory(), X509TrustManager)
+                .build();
+    }
 
 
+    /**
+     * [23]Websocket支持
+     * okhttp3支持websocket,简易推送，轮训都可以使用
+     * websocket协议首先会发起http请求，握手成功后，转换协议保持长连接，类似心跳
+     * <p>
+     * 【说明】创建一个OkHttpClient，通常是单例，
+     * 如果要自定义一些属性那就要用内部的Builder来构造
+     * <p>
+     * [参考文章]https://blog.csdn.net/xlh1191860939/article/details/75452342/
+     */
 
+    private void okHttpWebSocket(String url) {
+        OkHttpClient okHttpClient = new OkHttpClient.Builder().build();
+        Request request = new Request.Builder()
+                .url(url)
+                .build();
+        okHttpClient.newWebSocket(request, new WebSocketListener() {
+            @Override
+            public void onOpen(WebSocket webSocket, Response response) {
+                super.onOpen(webSocket, response);
+                // 连接成功
+            }
 
+            @Override
+            public void onMessage(WebSocket webSocket, String text) {
+                super.onMessage(webSocket, text);
+                // 当收到文本消息
+            }
 
+            @Override
+            public void onMessage(WebSocket webSocket, ByteString bytes) {
+                super.onMessage(webSocket, bytes);
+                // 收到字节消息，可转换为文本
+            }
 
+            @Override
+            public void onClosing(WebSocket webSocket, int code, String reason) {
+                super.onClosing(webSocket, code, reason);
+
+            }
+
+            @Override
+            public void onClosed(WebSocket webSocket, int code, String reason) {
+                super.onClosed(webSocket, code, reason);
+                // 连接被关闭
+            }
+
+            @Override
+            public void onFailure(WebSocket webSocket, Throwable t, Response response) {
+                super.onFailure(webSocket, t, response);
+                // 连接失败
+            }
+        });
+    }
 
 
 }
