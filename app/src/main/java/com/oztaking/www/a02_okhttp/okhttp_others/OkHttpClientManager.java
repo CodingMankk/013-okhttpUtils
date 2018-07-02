@@ -8,6 +8,16 @@ import android.widget.ImageView;
 
 import com.google.gson.Gson;
 import com.google.gson.internal.$Gson$Types;
+import com.squareup.okhttp.Call;
+import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.FormEncodingBuilder;
+import com.squareup.okhttp.Headers;
+import com.squareup.okhttp.MediaType;
+import com.squareup.okhttp.MultipartBuilder;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -23,17 +33,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Headers;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 /**
- * @function
+ * @function 对okhttp的封装，是基于2.4.0 封装；
+ * 参考文章：https://blog.csdn.net/lmj623565791/article/details/47911083
+ *
+ *  compile 'com.squareup.okhttp:okhttp:2.4.0'
+ *  compile 'com.squareup.okio:okio:1.5.0'
+ *
+ *
  */
 
 public class OkHttpClientManager {
@@ -45,13 +53,23 @@ public class OkHttpClientManager {
     private static final String TAG = "OkHttpClientManager";
 
     private OkHttpClientManager() {
-        mOkHttpClient = new OkHttpClient();
-//cookie enabled
+        mOkHttpClient = new OkHttpClient(); //建立OkHttpClient类；
+        /*
+        【1】使能cookie enabled
+          三种请求：
+          ACCEPT_ALL ：accepts all cookies
+          ACCEPT_NONE：accepts no cookies
+          ACCEPT_ORIGINAL_SERVER ：only accepts cookies from original server
+         */
         mOkHttpClient.setCookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER));
-        mDelivery = new Handler(Looper.getMainLooper());
-        mGson = new Gson();
+        mDelivery = new Handler(Looper.getMainLooper()); //对子线程的的网路请求；
+        mGson = new Gson(); //Gson对象；
     }
 
+    /**
+     * 【2】单例
+     * @return
+     */
     public static OkHttpClientManager getInstance() {
         if (mInstance == null) {
             synchronized (OkHttpClientManager.class) {
@@ -64,12 +82,14 @@ public class OkHttpClientManager {
     }
 
     /**
-     * 同步的Get请求
+     * 同步Get请求
      *
+     * 说明：okhttp默认是get请求。
      * @param url
      * @return Response
      */
     private Response _getAsyn(String url) throws IOException {
+
         final Request request = new Request.Builder()
                 .url(url)
                 .build();
@@ -80,11 +100,11 @@ public class OkHttpClientManager {
 
     /**
      * 同步的Get请求
-     * <p>
-     * *
-     *
      * @param url
      * @return 字符串
+     *
+     * /直接调用了返回原始response方法，然后解析为string；
+     *
      */
     private String _getAsString(String url) throws IOException {
         Response execute = _getAsyn(url);
@@ -92,16 +112,16 @@ public class OkHttpClientManager {
     }
 
     /**
-     * 异步的get请求
+     * 异步get请求
      *
      * @param url
-     * @param callback
+     * @param callback 封转之后的callback
      */
     private void _getAsyn(String url, final ResultCallback callback) {
         final Request request = new Request.Builder()
                 .url(url)
                 .build();
-        deliveryResult(callback, request);
+        deliveryResult(callback, request); //封装了异步请求；
     }
 
     /**
@@ -466,7 +486,7 @@ public class OkHttpClientManager {
     private Map<String, String> mSessions = new HashMap<String, String>();
 
     private void deliveryResult(final ResultCallback callback, Request request) {
-        mOkHttpClient.newCall(request).enqueue(new Callback() {
+        mOkHttpClient.newCall(request).enqueue(new Callback() { //直接调用okhttp的异步请求
             @Override
             public void onFailure(final Request request, final IOException e) {
                 sendFailedStringCallback(request, e, callback);
@@ -476,23 +496,25 @@ public class OkHttpClientManager {
             public void onResponse(final Response response) {
                 try {
                     final String string = response.body().string();
+                    //如果结果是String类型，返回string
                     if (callback.mType == String.class) {
                         sendSuccessResultCallback(string, callback);
                     } else {
+                        //否则，使用Gson解析返回json数据；
                         Object o = mGson.fromJson(string, callback.mType);
                         sendSuccessResultCallback(o, callback);
                     }
                 } catch (IOException e) {
-                    sendFailedStringCallback(response.request(), e, callback);
-                } catch (com.google.gson.JsonParseException e)//Json解析的错误
-                {
-                    sendFailedStringCallback(response.request(), e, callback);
+                    sendFailedStringCallback(response.request(), e, callback);//返回错误信息
+                } catch (com.google.gson.JsonParseException e){
+                    sendFailedStringCallback(response.request(), e, callback);//返回json解析错误；
                 }
             }
         });
     }
 
     private void sendFailedStringCallback(final Request request, final Exception e, final ResultCallback callback) {
+        //使用handler在子线程中将错误response和error码返回
         mDelivery.post(new Runnable() {
             @Override
             public void run() {
@@ -503,6 +525,7 @@ public class OkHttpClientManager {
     }
 
     private void sendSuccessResultCallback(final Object object, final ResultCallback callback) {
+        //使用handler在子线程中将response结果返回
         mDelivery.post(new Runnable() {
             @Override
             public void run() {
@@ -528,8 +551,12 @@ public class OkHttpClientManager {
                 .build();
     }
 
+    /**
+     * 将callback封装为了抽象类
+     * @param <T>
+     */
     public static abstract class ResultCallback<T> {
-        Type mType;
+        Type mType;  //返回的response数据具有不同的类型，此处必须判断当前的
 
         public ResultCallback() {
             mType = getSuperclassTypeParameter(getClass());
@@ -563,11 +590,3 @@ public class OkHttpClientManager {
     }
 }
 
-
-
-
-
-
-
-
-}
