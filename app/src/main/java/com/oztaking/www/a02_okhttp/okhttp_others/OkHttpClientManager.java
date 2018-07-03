@@ -37,11 +37,9 @@ import java.util.Set;
 /**
  * @function 对okhttp的封装，是基于2.4.0 封装；
  * 参考文章：https://blog.csdn.net/lmj623565791/article/details/47911083
- *
- *  compile 'com.squareup.okhttp:okhttp:2.4.0'
- *  compile 'com.squareup.okio:okio:1.5.0'
- *
- *
+ * <p>
+ * compile 'com.squareup.okhttp:okhttp:2.4.0'
+ * compile 'com.squareup.okio:okio:1.5.0'
  */
 
 public class OkHttpClientManager {
@@ -68,6 +66,7 @@ public class OkHttpClientManager {
 
     /**
      * 【2】单例
+     *
      * @return
      */
     public static OkHttpClientManager getInstance() {
@@ -83,8 +82,9 @@ public class OkHttpClientManager {
 
     /**
      * 同步Get请求
-     *
+     * <p>
      * 说明：okhttp默认是get请求。
+     *
      * @param url
      * @return Response
      */
@@ -100,11 +100,11 @@ public class OkHttpClientManager {
 
     /**
      * 同步的Get请求
+     *
      * @param url
      * @return 字符串
-     *
+     * <p>
      * /直接调用了返回原始response方法，然后解析为string；
-     *
      */
     private String _getAsString(String url) throws IOException {
         Response execute = _getAsyn(url);
@@ -129,28 +129,28 @@ public class OkHttpClientManager {
      *
      * @param url
      * @param params post的参数
-     * @return
+     * @return 返回原始响应数据
      */
     private Response _post(String url, Param... params) throws IOException {
-        Request request = buildPostRequest(url, params);
+        Request request = buildPostRequest(url, params); //对post的Request的封装；
         Response response = mOkHttpClient.newCall(request).execute();
-        return response;
+        return response;  //返回原始响应数据
     }
 
     /**
-     * 同步的Post请求
+     * 同步的Post请求--返回String
      *
      * @param url
      * @param params post的参数
      * @return 字符串
      */
     private String _postAsString(String url, Param... params) throws IOException {
-        Response response = _post(url, params);
-        return response.body().string();
+        Response response = _post(url, params); //调用上一个post请求，只是返回的参数进行了String提取；
+        return response.body().string(); //返回String
     }
 
     /**
-     * 异步的post请求
+     * 异步post请求封装
      *
      * @param url
      * @param callback
@@ -169,34 +169,37 @@ public class OkHttpClientManager {
      * @param params
      */
     private void _postAsyn(String url, final ResultCallback callback, Map<String, String> params) {
-        Param[] paramsArr = map2Params(params);
+        Param[] paramsArr = map2Params(params);//params如果是map形式，则转化为数组；
         Request request = buildPostRequest(url, paramsArr);
         deliveryResult(callback, request);
     }
 
     /**
-     * 同步基于post的文件上传
+     * post同步文件上传
      *
      * @param params
      * @return
      */
+    //file[]+fileKey[]+params
     private Response _post(String url, File[] files, String[] fileKeys, Param... params) throws IOException {
         Request request = buildMultipartFormRequest(url, files, fileKeys, params);
         return mOkHttpClient.newCall(request).execute();
     }
 
+    //file+fileKey
     private Response _post(String url, File file, String fileKey) throws IOException {
         Request request = buildMultipartFormRequest(url, new File[]{file}, new String[]{fileKey}, null);
         return mOkHttpClient.newCall(request).execute();
     }
 
+    //file+fileKey+params
     private Response _post(String url, File file, String fileKey, Param... params) throws IOException {
         Request request = buildMultipartFormRequest(url, new File[]{file}, new String[]{fileKey}, params);
         return mOkHttpClient.newCall(request).execute();
     }
 
     /**
-     * 异步基于post的文件上传
+     * 异步post文件上传
      *
      * @param url
      * @param callback
@@ -210,7 +213,7 @@ public class OkHttpClientManager {
     }
 
     /**
-     * 异步基于post的文件上传，单文件不带参数上传
+     * 异步post文件上传，单文件不带参数上传
      *
      * @param url
      * @param callback
@@ -238,17 +241,20 @@ public class OkHttpClientManager {
         deliveryResult(callback, request);
     }
 
+
     /**
      * 异步下载文件
      *
-     * @param url
-     * @param destFileDir 本地文件存储的文件夹
-     *                    * @param callback
+     * @param url         下载文件地址
+     * @param destFileDir 下载文件保存路径
+     * @param callback
      */
+
     private void _downloadAsyn(final String url, final String destFileDir, final ResultCallback callback) {
         final Request request = new Request.Builder()
                 .url(url)
                 .build();
+
         final Call call = mOkHttpClient.newCall(request);
         call.enqueue(new Callback() {
             @Override
@@ -263,24 +269,26 @@ public class OkHttpClientManager {
                 int len = 0;
                 FileOutputStream fos = null;
                 try {
-                    is = response.body().byteStream();
+                    is = response.body().byteStream(); //获取字节流数据；
                     File file = new File(destFileDir, getFileName(url));
                     fos = new FileOutputStream(file);
                     while ((len = is.read(buf)) != -1) {
                         fos.write(buf, 0, len);
                     }
                     fos.flush();
-//如果下载文件成功，第一个参数为文件的绝对路径
+                    //如果下载文件成功，第一个参数为文件的绝对路径
                     sendSuccessResultCallback(file.getAbsolutePath(), callback);
                 } catch (IOException e) {
                     sendFailedStringCallback(response.request(), e, callback);
                 } finally {
                     try {
-                        if (is != null) is.close();
+                        if (is != null)
+                            is.close();
                     } catch (IOException e) {
                     }
                     try {
-                        if (fos != null) fos.close();
+                        if (fos != null)
+                            fos.close();
                     } catch (IOException e) {
                     }
                 }
@@ -288,16 +296,22 @@ public class OkHttpClientManager {
         });
     }
 
+    //一般的文件下载路径：
+    //  http://down.360safe.com/360Root/3 6 0 R o o t S e t u p . e x e
+    //  0                               32                            47
+    //  separatorIndex = 31; path.length=47;
+    // 32--47 len = 15; 32-47开始；
     private String getFileName(String path) {
-        int separatorIndex = path.lastIndexOf("/");
+        int separatorIndex = path.lastIndexOf("/"); //获取最后一个"/"的索引值；
         return (separatorIndex < 0) ? path : path.substring(separatorIndex + 1, path.length());
     }
 
     /**
-     * 加载图片
+     * 下载图片并加载图片
      *
-     * @param view
-     * @param url
+     * @param view       ：设置图片的ImageView
+     * @param url        :下载的图片的地址；
+     * @param errorResId ：下载失败之后的该ImageView显示的默认图片
      * @throws IOException
      */
     private void _displayImage(final ImageView view, final String url, final int errorResId) {
@@ -315,20 +329,23 @@ public class OkHttpClientManager {
             public void onResponse(Response response) {
                 InputStream is = null;
                 try {
-                    is = response.body().byteStream();
+                    is = response.body().byteStream(); //reponse 字节流，第一次请求stream是为了计算图片的inSampleSize
                     ImageUtils.ImageSize actualImageSize = ImageUtils.getImageSize(is);
                     ImageUtils.ImageSize imageViewSize = ImageUtils.getImageViewSize(view);
+                    //计算bitmpa的inSample比例
                     int inSampleSize = ImageUtils.calculateInSampleSize(actualImageSize, imageViewSize);
                     try {
                         is.reset();
                     } catch (IOException e) {
                         response = _getAsyn(url);
-                        is = response.body().byteStream();
+                        is = response.body().byteStream(); //reponse 字节流，第2次请求stream为了加载图片；
                     }
+
                     BitmapFactory.Options ops = new BitmapFactory.Options();
-                    ops.inJustDecodeBounds = false;
+                    ops.inJustDecodeBounds = false; //计算结束之后设置为false，在ImageUtils时设置为了true；
                     ops.inSampleSize = inSampleSize;
                     final Bitmap bm = BitmapFactory.decodeStream(is, null, ops);
+                    //网络请求为耗时操作，必须放在子线程操作，更新ui要放在主线程；
                     mDelivery.post(new Runnable() {
                         @Override
                         public void run() {
@@ -358,69 +375,69 @@ public class OkHttpClientManager {
     }
 
     //*************对外公布的方法************
+    //[1]同步Get请求-返回原始response
     public static Response getAsyn(String url) throws IOException {
         return getInstance()._getAsyn(url);
     }
-
+    //[2]同步Get请求-返回String
     public static String getAsString(String url) throws IOException {
         return getInstance()._getAsString(url);
     }
-
+    //[3]异步Get请求-返回原始请求
     public static void getAsyn(String url, ResultCallback callback) {
         getInstance()._getAsyn(url, callback);
     }
-
+    //[4]同步Post请求--返回原始response
     public static Response post(String url, Param... params) throws IOException {
         return getInstance()._post(url, params);
     }
-
+    //[5]同步Post请求--返回string
     public static String postAsString(String url, Param... params) throws IOException {
         return getInstance()._postAsString(url, params);
     }
 
+    //[6]异步post请求封装
     public static void postAsyn(String url, final ResultCallback callback, Param... params) {
         getInstance()._postAsyn(url, callback, params);
     }
-
+    //[7]异步post请求封装,参数的形式是map
     public static void postAsyn(String url, final ResultCallback callback, Map<String, String> params) {
         getInstance()._postAsyn(url, callback, params);
     }
-
+    //[8]post同步文件上传-file[]+fileKey[]+params
     public static Response post(String url, File[] files, String[] fileKeys, Param... params) throws IOException {
         return getInstance()._post(url, files, fileKeys, params);
     }
-
+    //[9]file+fileKey
     public static Response post(String url, File file, String fileKey) throws IOException {
         return getInstance()._post(url, file, fileKey);
     }
-
+    //[10]file+fileKey+params
     public static Response post(String url, File file, String fileKey, Param... params) throws IOException {
         return getInstance()._post(url, file, fileKey, params);
     }
-
+    //[11]异步post文件上传
     public static void postAsyn(String url, ResultCallback callback, File[] files, String[] fileKeys, Param... params) throws IOException {
         getInstance()._postAsyn(url, callback, files, fileKeys, params);
     }
-
+    //[12]异步post文件上传，单文件不带参数上传
     public static void postAsyn(String url, ResultCallback callback, File file, String fileKey) throws IOException {
         getInstance()._postAsyn(url, callback, file, fileKey);
     }
-
+    //[13]异步post文件上传，单文件且携带其他form参数上传
     public static void postAsyn(String url, ResultCallback callback, File file, String fileKey, Param... params) throws IOException {
         getInstance()._postAsyn(url, callback, file, fileKey, params);
     }
-
+    //[14]下载图片并加载图片，可以设置默认加载失败的图片
     public static void displayImage(final ImageView view, String url, int errorResId) throws IOException {
         getInstance()._displayImage(view, url, errorResId);
     }
-
+    //[15]下载图片并加载图片
     public static void displayImage(final ImageView view, String url) {
         getInstance()._displayImage(view, url, -1);
     }
-
-    public static void downloadAsyn(String url, String destDir, ResultCallback callback)
-
-    {
+    //[16]异步下载文件
+    public static void downloadAsyn(String url, String destDir, ResultCallback callback) {
         getInstance()._downloadAsyn(url, destDir, callback);
     }
 
@@ -428,19 +445,22 @@ public class OkHttpClientManager {
     private Request buildMultipartFormRequest(String url, File[] files,
                                               String[] fileKeys, Param[] params) {
         params = validateParam(params);
+        //构建MultipartBuilder
         MultipartBuilder builder = new MultipartBuilder()
-                .type(MultipartBuilder.FORM);
+                .type(MultipartBuilder.FORM);  //设置为表单数据
+        //[1]params的requestBody的构建
         for (Param param : params) {
             builder.addPart(Headers.of("Content-Disposition", "form-data; name=\"" + param.key + "\""),
                     RequestBody.create(null, param.value));
         }
+        //[2]file的requestBody的构建
         if (files != null) {
             RequestBody fileBody = null;
             for (int i = 0; i < files.length; i++) {
                 File file = files[i];
                 String fileName = file.getName();
                 fileBody = RequestBody.create(MediaType.parse(guessMimeType(fileName)), file);
-//TODO 根据文件名设置contentType
+                //TODO 根据文件名设置contentType
                 builder.addPart(Headers.of("Content-Disposition",
                         "form-data; name=\"" + fileKeys[i] + "\"; filename=\"" + fileName + "\""),
                         fileBody);
@@ -453,15 +473,18 @@ public class OkHttpClientManager {
                 .build();
     }
 
+    //获取文件的Content-Type(Mime-Type)值
     private String guessMimeType(String path) {
+        //获取文件Content-Type(Mime-Type)
         FileNameMap fileNameMap = URLConnection.getFileNameMap();
         String contentTypeFor = fileNameMap.getContentTypeFor(path);
         if (contentTypeFor == null) {
-            contentTypeFor = "application/octet-stream";
+            contentTypeFor = "application/octet-stream"; //默认为"application/octet-stream"
         }
         return contentTypeFor;
     }
 
+    //增加对params为空的赋值
     private Param[] validateParam(Param[] params) {
         if (params == null)
             return new Param[0];
@@ -469,7 +492,9 @@ public class OkHttpClientManager {
     }
 
     private Param[] map2Params(Map<String, String> params) {
-        if (params == null) return new Param[0];
+        if (params == null)
+            return new Param[0];
+
         int size = params.size();
         Param[] res = new Param[size];
         Set<Map.Entry<String, String>> entries = params.entrySet();
@@ -506,7 +531,7 @@ public class OkHttpClientManager {
                     }
                 } catch (IOException e) {
                     sendFailedStringCallback(response.request(), e, callback);//返回错误信息
-                } catch (com.google.gson.JsonParseException e){
+                } catch (com.google.gson.JsonParseException e) {
                     sendFailedStringCallback(response.request(), e, callback);//返回json解析错误；
                 }
             }
@@ -536,10 +561,26 @@ public class OkHttpClientManager {
         });
     }
 
+    /**
+     * 生成FormEncodingBuilder/FormBody,然后填充数据；
+     *
+     * @param url
+     * @param params
+     * @return
+     */
     private Request buildPostRequest(String url, Param[] params) {
         if (params == null) {
             params = new Param[0];
         }
+
+        /*
+            okHttp3的写法；
+        FormBody.Builder builder1 = new FormBody.Builder();
+        for (Param param:params){
+            builder1.add(param.key,param.value);
+        }*/
+
+        //创建一个fromBody--okHttp3的写法;
         FormEncodingBuilder builder = new FormEncodingBuilder();
         for (Param param : params) {
             builder.add(param.key, param.value);
@@ -552,7 +593,8 @@ public class OkHttpClientManager {
     }
 
     /**
-     * 将callback封装为了抽象类
+     * 将callback封装成抽象类
+     *
      * @param <T>
      */
     public static abstract class ResultCallback<T> {
@@ -567,12 +609,15 @@ public class OkHttpClientManager {
             if (superclass instanceof Class) {
                 throw new RuntimeException("Missing type parameter.");
             }
+            //对应找到Gson的类型；
             ParameterizedType parameterized = (ParameterizedType) superclass;
             return $Gson$Types.canonicalize(parameterized.getActualTypeArguments()[0]);
         }
 
+        //对应onFailuer方法；
         public abstract void onError(Request request, Exception e);
 
+        //对应onResponse方法；
         public abstract void onResponse(T response);
     }
 
