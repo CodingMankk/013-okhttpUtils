@@ -1,15 +1,18 @@
 package com.codingman.www.okhttputilssample;
 
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.orhanobut.logger.Logger;
 import com.zhy.http.okhttp.OkHttpUtils;
+import com.zhy.http.okhttp.callback.BitmapCallback;
 import com.zhy.http.okhttp.callback.FileCallBack;
 import com.zhy.http.okhttp.callback.StringCallback;
 
@@ -22,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView mTv;
     private ProgressBar mProgressBar;
+    private ImageView mIv;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
         mTv = (TextView) findViewById(R.id.tv);
         mProgressBar = (ProgressBar) findViewById(R.id.pb_progressBar);
         mProgressBar.setMax(100);
+
+        mIv = (ImageView)findViewById(R.id.iv);
     }
 
 
@@ -42,7 +48,8 @@ public class MainActivity extends AppCompatActivity {
      */
     public void okHttpGet(View view) {
         String url0 = "http://www.imooc.com/";
-        String url1 = "http://www.391k.com/api/xapi.ashx/info.json?key=bd_hyrzjjfb4modhj&size=10&page=1";
+        String url1 = "http://www.391k.com/api/xapi.ashx/info" +
+                ".json?key=bd_hyrzjjfb4modhj&size=10&page=1";
         OkHttpUtils.get()
                 .url(url0)
                 .build()
@@ -52,14 +59,17 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [2] getfile 文件下载
+     * 经测试：下载到了 /storage/sdcard1/21068.txt目录下
      */
-    public void okHttpDownLoadFile(View view){
+    public void okHttpDownLoadFile(View view) {
         String url = "http://txt.99dushuzu.com/download-txt/3/21068.txt";
-        String url1 = "https://github.com/hongyangAndroid/okhttp-utils/blob/master/okhttputils-2_4_1.jar?raw=true";
+        String url1 = "https://github.com/hongyangAndroid/okhttp-utils/blob/master/okhttputils" +
+                "-2_4_1.jar?raw=true";
         OkHttpUtils.get()
                 .url(url)
                 .build()
-                .execute(new FileCallBack(Environment.getExternalStorageDirectory().getAbsolutePath(),
+                .execute(new FileCallBack(Environment.getExternalStorageDirectory()
+                        .getAbsolutePath(),
                         "21068.txt") {
                     @Override
                     public void onError(Call call, Exception e, int id) {
@@ -73,10 +83,64 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void inProgress(float progress, long total, int id) {
-                        mProgressBar.setProgress((int) (progress*100));
+                        mProgressBar.setProgress((int) (progress * 100));
                     }
                 });
     }
+
+    /**
+     * [3] getfile 文件下载
+     */
+    public void okHttpGetImage(View view){
+        mTv.setText("");
+        String url ="http://b.hiphotos.baidu.com/image/pic/item/0ff41bd5ad6eddc4f8daa30935dbb6fd52663306.jpg";
+        OkHttpUtils.get()
+                .url(url)
+                .tag(this)
+                .build()
+                .connTimeOut(2000)
+                .readTimeOut(2000)
+                .writeTimeOut(2000)
+                .execute(new BitmapCallback() {
+                    @Override
+                    public void onError(Call call, Exception e, int id) {
+                        mTv.setText(e.getMessage());
+                    }
+
+                    @Override
+                    public void onResponse(Bitmap response, int id) {
+                        mIv.setImageBitmap(response);
+                        mTv.setText("Bitmap load succeed...");
+                    }
+
+                    @Override
+                    public void onBefore(Request request, int id) {
+                        setTitle("Loading");
+                    }
+
+                    @Override
+                    public void onAfter(int id) {
+                        setTitle("Completed");
+                    }
+
+                });
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -114,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
         //文件下载时进度使用；
         @Override
         public void inProgress(float progress, long total, int id) {
-            mProgressBar.setProgress((int) (progress*100));
+            mProgressBar.setProgress((int) (progress * 100));
         }
     }
 
