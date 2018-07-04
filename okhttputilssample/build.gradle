@@ -34,4 +34,5 @@ dependencies {
     compile 'com.zhy:okhttputils:2.6.2' //hy封装的okhttp
 //    compile 'com.github.franmontiel:PersistentCookieJar:v0.9.3'
     compile 'com.orhanobut:logger:1.15'
+    compile 'com.google.code.gson:gson:2.6.2'
 }

@@ -23,26 +23,77 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:onClick="okHttpGet"
-            android:text="Get"
-            android:textSize="15dp"/>
+            android:text="GetResquest"
+            android:textSize="10dp"
+            android:textAllCaps="false"
+            />
 
         <Button
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:onClick="okHttpDownLoadFile"
-            android:text="FileDownLoad"
-            android:textSize="15dp"/>
+            android:text="GetFile"
+            android:textAllCaps="false"
+            android:textSize="10dp"/>
 
         <Button
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:onClick="okHttpGetImage"
-            android:text="GetImage"
-            android:textSize="15dp"/>
+            android:text="GetImge"
+            android:textAllCaps="false"
+            android:textSize="10dp"/>
+
+        <Button
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAllCaps="false"
+            android:onClick="okHttpPostString"
+            android:text="postString"
+            android:textSize="10dp"/>
+
+        <Button
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAllCaps="false"
+            android:onClick="okHttpPostImg"
+            android:text="postImage"
+            android:textSize="10dp"/>
+
+
+
+
+
 
     </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAllCaps="false"
+            android:onClick="postFormHeaderParamsFile"
+            android:text="postFormHeaderParamsFile"
+            android:textSize="10dp"/>
+
+        <Button
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAllCaps="false"
+            android:onClick="getHttpsHtml"
+            android:text="getHttpsHtml"
+            android:textSize="10dp"/>
+    </LinearLayout>
+
 
     <TextView
         android:id="@+id/tv"
