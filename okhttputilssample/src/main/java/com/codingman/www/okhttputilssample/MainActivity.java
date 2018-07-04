@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
         mProgressBar = (ProgressBar) findViewById(R.id.pb_progressBar);
         mProgressBar.setMax(100);
 
-        mIv = (ImageView)findViewById(R.id.iv);
+        mIv = (ImageView) findViewById(R.id.iv);
     }
 
 
@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
                 ".json?key=bd_hyrzjjfb4modhj&size=10&page=1";
         OkHttpUtils.get()
 //                .url(url0)
-                .url(mBaseUrl+"login?username=OzTaking&password=8888") //本地服务器请求
+                .url(mBaseUrl + "login?username=OzTaking&password=8888") //本地服务器请求
                 .build()
                 .execute(new TCallBack());
     }
@@ -67,13 +67,13 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [2] getfile 文件下载
-     *
+     * <p>
      * 【说明】
      * 【1】在android6.0 手机找不到文件；
      * 【2】在android 4.4 经测试：下载到了 /storage/sdcard1/21068.txt目录下
      * 【3】在模拟器上android 8.0 需要动态申请权限，会报以下错误：
-     *        /storage/emulated/0 (Permission denied) 权限已开，写入sd卡仍报错的解决办法
-     *  [模拟器解决办法]打开虚拟机的Setting–>Apps–>找到你的应用–>点击Permissions–>将需要的权限手动打开，问题解决。
+     * /storage/emulated/0 (Permission denied) 权限已开，写入sd卡仍报错的解决办法
+     * [模拟器解决办法]打开虚拟机的Setting–>Apps–>找到你的应用–>点击Permissions–>将需要的权限手动打开，问题解决。
      */
     public void okHttpDownLoadFile(View view) {
         String url = "http://txt.99dushuzu.com/download-txt/3/21068.txt";
@@ -92,10 +92,9 @@ public class MainActivity extends AppCompatActivity {
 //                .execute(new FileCallBack(Environment.getExternalStorageDirectory()
 //                        .getAbsolutePath(),
 //                        "okHttpDownLoadFile-测试文件.txt")
-                        .execute(new FileCallBack(Environment.getExternalStorageDirectory()
-                                .getAbsolutePath(),
-                                "windows_10_ultimate_x64_2018.iso")
-                        {
+                .execute(new FileCallBack(Environment.getExternalStorageDirectory()
+                        .getAbsolutePath(),
+                        "windows_10_ultimate_x64_2018.iso") {
                     @Override
                     public void onError(Call call, Exception e, int id) {
                         Logger.e("onError :" + e.getMessage());
@@ -116,9 +115,9 @@ public class MainActivity extends AppCompatActivity {
     /**
      * [3] getImage下载并加载
      */
-    public void okHttpGetImage(View view){
+    public void okHttpGetImage(View view) {
         mTv.setText("");
-        String url ="http://b.hiphotos.baidu.com/image/pic/item/0ff41bd5ad6eddc4f8daa30935dbb6fd52663306.jpg";
+        String url = "http://b.hiphotos.baidu.com/image/pic/item/0ff41bd5ad6eddc4f8daa30935dbb6fd52663306.jpg";
         String mBaseUrlPic1 = "http://192.168.0.12:8080/1.jpg"; //本地tomcat服务器图片；
         String mBaseUrlPic2 = "http://192.168.0.12:8080/2.jpg"; //本地tomcat服务器图片；
         String mBaseUrlPic3 = "http://192.168.0.12:8080/3.jpg"; //本地tomcat服务器图片；
@@ -161,14 +160,14 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [4]postJson
-     *  将数据转化为json然后post到服务器；
+     * 将数据转化为json然后post到服务器；
      */
-    public void okHttpPostString(View view){
+    public void okHttpPostString(View view) {
         String url = mBaseUrl + "postString";
         OkHttpUtils.postString()
                 .url(url)
                 .mediaType(MediaType.parse("application/json; charset=utf-8"))
-                .content(new Gson().toJson(new User("OzTaking","12345")))
+                .content(new Gson().toJson(new User("OzTaking", "12345")))
                 .build()
                 .execute(new TCallBack());
     }
@@ -179,20 +178,20 @@ public class MainActivity extends AppCompatActivity {
      * fileName1:osot一个exe文件；
      */
 
-    public void okHttpPostImg(View view){
+    public void okHttpPostImg(View view) {
 
-        String fileName0="1.jeg";
-        String fileName1="360RootSetup.exe";
+        String fileName0 = "1.jeg";
+        String fileName1 = "360RootSetup.exe";
 
         mProgressBar.setProgress(0);
 
-        String url = mBaseUrl +"postFile";
+        String url = mBaseUrl + "postFile";
 
         File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), fileName0);
         File file2 = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), fileName1);
         Logger.d(Environment.getExternalStorageDirectory());
-        if (!file2.exists()){
-            Toast.makeText(getApplicationContext(),"PostImg文件不存在",Toast.LENGTH_SHORT)
+        if (!file2.exists()) {
+            Toast.makeText(getApplicationContext(), "PostImg文件不存在", Toast.LENGTH_SHORT)
                     .show();
             return;
         }
@@ -211,29 +210,29 @@ public class MainActivity extends AppCompatActivity {
      * [注意]服务器端代码不知道该怎么写？？？
      */
 
-    public void postFormHeaderParamsFile(View view){
+    public void postFormHeaderParamsFile(View view) {
         String url = mBaseUrl + "okHttpPostString";
 
         String FileName = "360RootSetup.exe";
         File file = new File(Environment.getExternalStorageDirectory(), FileName);
-        if (!file.exists()){
-            Toast.makeText(getApplicationContext(),"postForm文件不存在",Toast.LENGTH_SHORT)
+        if (!file.exists()) {
+            Toast.makeText(getApplicationContext(), "postForm文件不存在", Toast.LENGTH_SHORT)
                     .show();
             return;
         }
 
         //params
         Map<String, String> params = new HashMap<>();
-        params.put("username","OzTaking");
-        params.put("password","88888888");
+        params.put("username", "OzTaking");
+        params.put("password", "88888888");
 
         //headers
         Map<String, String> headers = new HashMap<>();
-        headers.put("APP-Key","APP-Secret888");
-        headers.put("APP-Secret","APP-Secret666");
+        headers.put("APP-Key", "APP-Secret888");
+        headers.put("APP-Secret", "APP-Secret666");
 
         OkHttpUtils.post()
-                .addFile("androidFile",FileName,file)
+                .addFile("androidFile", FileName, file)
                 .url(url)
                 .params(params)
                 .headers(headers)
@@ -244,34 +243,34 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * [7]https的验证
-     *对于Https
-     *依然是通过配置即可，框架中提供了一个类HttpsUtils
-     *
-     *设置可访问所有的https网站
-     *HttpsUtils.SSLParams sslParams = HttpsUtils.getSslSocketFactory(null, null, null);
-     *OkHttpClient okHttpClient = new OkHttpClient.Builder()
-     *        .sslSocketFactory(sslParams.sSLSocketFactory, sslParams.trustManager)
-     *         //其他配置
-     *         .build();
-     *OkHttpUtils.initClient(okHttpClient);
-
-     *设置具体的证书
-     *HttpsUtils.SSLParams sslParams = HttpsUtils.getSslSocketFactory(证书的inputstream, null, null);
-     *OkHttpClient okHttpClient = new OkHttpClient.Builder()
-     *        .sslSocketFactory(sslParams.sSLSocketFactory, sslParams.trustManager))
-     *         //其他配置
-     *         .build();
-     *OkHttpUtils.initClient(okHttpClient);
-
-     *双向认证
-     *HttpsUtils.getSslSocketFactory(
-     *	证书的inputstream,
-     *	本地证书的inputstream,
-     *	本地证书的密码)
-     *同样的，框架中只是提供了几个实现类，你可以自行实现SSLSocketFactory，传入sslSocketFactory即可
+     * 对于Https
+     * 依然是通过配置即可，框架中提供了一个类HttpsUtils
+     * <p>
+     * 设置可访问所有的https网站
+     * HttpsUtils.SSLParams sslParams = HttpsUtils.getSslSocketFactory(null, null, null);
+     * OkHttpClient okHttpClient = new OkHttpClient.Builder()
+     * .sslSocketFactory(sslParams.sSLSocketFactory, sslParams.trustManager)
+     * //其他配置
+     * .build();
+     * OkHttpUtils.initClient(okHttpClient);
+     * <p>
+     * 设置具体的证书
+     * HttpsUtils.SSLParams sslParams = HttpsUtils.getSslSocketFactory(证书的inputstream, null, null);
+     * OkHttpClient okHttpClient = new OkHttpClient.Builder()
+     * .sslSocketFactory(sslParams.sSLSocketFactory, sslParams.trustManager))
+     * //其他配置
+     * .build();
+     * OkHttpUtils.initClient(okHttpClient);
+     * <p>
+     * 双向认证
+     * HttpsUtils.getSslSocketFactory(
+     * 证书的inputstream,
+     * 本地证书的inputstream,
+     * 本地证书的密码)
+     * 同样的，框架中只是提供了几个实现类，你可以自行实现SSLSocketFactory，传入sslSocketFactory即可
      */
 
-    public void getHttpsHtml(View view){
+    public void getHttpsHtml(View view) {
         String url = "http://www.12306.cn/mormhweb/";
         String url1 = "https://kyfw.12306.cn/otn/";
         OkHttpUtils
@@ -284,12 +283,6 @@ public class MainActivity extends AppCompatActivity {
                 .execute(new TCallBack());
 
     }
-
-
-
-
-
-
 
 
     /**
@@ -323,8 +316,15 @@ public class MainActivity extends AppCompatActivity {
         //文件get/post时进度都会显示-某些情况下，因为速度比较快，进度条显示一闪而过；
         @Override
         public void inProgress(float progress, long total, int id) {
-           mProgressBar.setProgress((int) (progress * 100));
+            mProgressBar.setProgress((int) (progress * 100));
         }
     }
+
+
+    public void okHttpsCertificates(){
+
+    }
+
+
 
 }
