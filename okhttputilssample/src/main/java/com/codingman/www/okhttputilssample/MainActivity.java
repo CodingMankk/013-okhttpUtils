@@ -57,9 +57,13 @@ public class MainActivity extends AppCompatActivity {
         String url0 = "http://www.imooc.com/";
         String url1 = "http://www.391k.com/api/xapi.ashx/info" +
                 ".json?key=bd_hyrzjjfb4modhj&size=10&page=1";
+        String url2 = "https://192.168.1.104:8443/";
+        String url3 = "https://192.168.1.104:443/";
+        String url4 = "https://127.0.0.1:443/";
         OkHttpUtils.get()
 //                .url(url0)
-                .url(mBaseUrl + "login?username=OzTaking&password=8888") //本地服务器请求
+//                .url(mBaseUrl + "login?username=OzTaking&password=8888") //本地服务器请求
+                .url(url4) //本地服务器请求
                 .build()
                 .execute(new TCallBack());
     }
@@ -273,15 +277,16 @@ public class MainActivity extends AppCompatActivity {
     public void getHttpsHtml(View view) {
         String url = "http://www.12306.cn/mormhweb/";
         String url1 = "https://kyfw.12306.cn/otn/";
+        String url2 = "https://127.0.0.1:443/";
         OkHttpUtils
                 .get()
-                .url(url1)
+//                .url(url1)
+                .url(url2)
                 .build()
                 .connTimeOut(2000)
                 .readTimeOut(2000)
                 .writeTimeOut(2000)
                 .execute(new TCallBack());
-
     }
 
 
@@ -303,7 +308,10 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onError(Call call, Exception e, int id) {
+
             mTv.setText(e.getMessage());
+            Logger.d(e.getMessage());
+
         }
 
         @Override
@@ -311,6 +319,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(getApplicationContext(), response, Toast.LENGTH_LONG).show();
             //TextView显示response数据；
             mTv.setText(response);
+            Logger.d(response);
         }
 
         //文件get/post时进度都会显示-某些情况下，因为速度比较快，进度条显示一闪而过；
