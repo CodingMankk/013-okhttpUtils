@@ -31,7 +31,8 @@ public class MainActivity extends AppCompatActivity {
     private ProgressBar mProgressBar;
     private ImageView mIv;
 
-    private String mBaseUrl = "http://192.168.0.12:8080/okhttpDemo/";
+    private String mBaseUrlHttp = "http://192.168.0.12:8080/okhttpDemo/";
+    private String mBaseUrlHttps = "https://192.168.0.12:8221/okhttpDemo/";
 
 
     @Override
@@ -49,7 +50,6 @@ public class MainActivity extends AppCompatActivity {
         mIv = (ImageView) findViewById(R.id.iv);
     }
 
-
     /**
      * [1]异步get请求使用
      */
@@ -57,13 +57,17 @@ public class MainActivity extends AppCompatActivity {
         String url0 = "http://www.imooc.com/";
         String url1 = "http://www.391k.com/api/xapi.ashx/info" +
                 ".json?key=bd_hyrzjjfb4modhj&size=10&page=1";
-        String url2 = "https://192.168.1.104:8443/";
-        String url3 = "https://192.168.1.104:443/";
-        String url4 = "https://127.0.0.1:443/";
+
+        String url72 =  "https://192.168.0.12:8221/okhttpDemo/login?username=OzTaking&password=8888";
+
+        String url8 =  "http://192.168.0.12:8080/okhttpDemo/login?username=OzTaking&password=8888";
+
+
         OkHttpUtils.get()
 //                .url(url0)
 //                .url(mBaseUrl + "login?username=OzTaking&password=8888") //本地服务器请求
-                .url(url4) //本地服务器请求
+                .url(url72) //本地https服务器请求
+
                 .build()
                 .execute(new TCallBack());
     }
@@ -82,12 +86,17 @@ public class MainActivity extends AppCompatActivity {
     public void okHttpDownLoadFile(View view) {
         String url = "http://txt.99dushuzu.com/download-txt/3/21068.txt";
         String mBaseUrl1 = "http://192.168.0.12:8080/1.txt"; //本地tomcat服务器文件；
+
         String mBaseUrl2 = "http://192.168.0.12:8080/1.jpg"; //本地tomcat服务器图片；
         String mBaseUrl3 = "http://down.360safe.com/360Root/360RootSetup.exe"; //网络文件；
         String mBaseUrl4 = "https://qqrjtu.xy1758.com/mirrors/win10/8060/windows_10_ultimate_x64_2018.iso"; //网络文件；大文件
+        String url5 = "https://192.168.0.12:443/";
+        String mBaseUrl6 = "http://192.168.0.12:8080/2.txt"; //本地tomcat服务器文件；
+        String mBaseUrl7 = "https://192.168.0.12:8442/2.txt"; //本地tomcat服务器文件；
 
         OkHttpUtils.get()
-                .url(mBaseUrl4)
+                .url(mBaseUrl7)
+//                .url(mBaseUrl4)
 //                .url(mBaseUrl3)
 //                .url(mBaseUrl2)
 //                .url(mBaseUrl1)
@@ -126,9 +135,16 @@ public class MainActivity extends AppCompatActivity {
         String mBaseUrlPic2 = "http://192.168.0.12:8080/2.jpg"; //本地tomcat服务器图片；
         String mBaseUrlPic3 = "http://192.168.0.12:8080/3.jpg"; //本地tomcat服务器图片；
 
+        String mBaseUrlPic43 = "https://192.168.0.12:8221/3.jpg"; //本地tomcat服务器图片；
+        String mBaseUrlPic42 = "https://192.168.0.12:8221/2.jpg"; //本地tomcat服务器图片；
+        String mBaseUrlPic41 = "https://192.168.0.12:8221/1.jpg"; //本地tomcat服务器图片；
+
         OkHttpUtils.get()
 //                .url(url)
-                .url(mBaseUrlPic3)
+//                .url(mBaseUrlPic42)
+                .url(mBaseUrlPic42)
+//                .url(mBaseUrlPic42)
+//                .url(mBaseUrlPic4)
 //                .url(mBaseUrlPic2)
 //                .url(mBaseUrlPic1)
                 .tag(this)
@@ -167,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
      * 将数据转化为json然后post到服务器；
      */
     public void okHttpPostString(View view) {
-        String url = mBaseUrl + "postString";
+        String url = mBaseUrlHttp + "postString";
         OkHttpUtils.postString()
                 .url(url)
                 .mediaType(MediaType.parse("application/json; charset=utf-8"))
@@ -189,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
 
         mProgressBar.setProgress(0);
 
-        String url = mBaseUrl + "postFile";
+        String url = mBaseUrlHttp + "postFile";
 
         File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), fileName0);
         File file2 = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), fileName1);
@@ -215,7 +231,7 @@ public class MainActivity extends AppCompatActivity {
      */
 
     public void postFormHeaderParamsFile(View view) {
-        String url = mBaseUrl + "okHttpPostString";
+        String url = mBaseUrlHttp + "okHttpPostString";
 
         String FileName = "360RootSetup.exe";
         File file = new File(Environment.getExternalStorageDirectory(), FileName);
@@ -327,11 +343,6 @@ public class MainActivity extends AppCompatActivity {
         public void inProgress(float progress, long total, int id) {
             mProgressBar.setProgress((int) (progress * 100));
         }
-    }
-
-
-    public void okHttpsCertificates(){
-
     }
 
 

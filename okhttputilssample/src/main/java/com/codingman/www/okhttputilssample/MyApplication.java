@@ -11,11 +11,12 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateFactory;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManagerFactory;
 
 import okhttp3.OkHttpClient;
-import okio.Buffer;
 
 /**
  * @function
@@ -43,40 +44,46 @@ public class MyApplication extends Application{
             "og555S+C3eJAAVeNCTeMS3N/M5hzBRJAoffn3qoYdAO1Q8bTguOi+2849A=="+
             "-----END CERTIFICATE-----";
 
-    private String bendiceshi = "-----BEGIN CERTIFICATE-----\n"+
-            "MIIDQzCCAiugAwIBAgIEQFmaCjANBgkqhkiG9w0BAQsFADBRMQswCQYDVQQGEwJjbjEKMAgGA1UE"+
-            "CBMBczEKMAgGA1UEBxMBczEKMAgGA1UEChMBczEKMAgGA1UECxMBczESMBAGA1UEAxMJbG9jYWxo"+
-            "b3N0MCAXDTE4MDcwNDE0NDgzM1oYDzIxMTgwNjEwMTQ0ODMzWjBRMQswCQYDVQQGEwJjbjEKMAgG"+
-            "A1UECBMBczEKMAgGA1UEBxMBczEKMAgGA1UEChMBczEKMAgGA1UECxMBczESMBAGA1UEAxMJbG9j"+
-            "YWxob3N0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhzpGZCQH5uv/JvK+NfwVH/fm"+
-            "uKTi1vXAfT1Z3s8mhJtqFrbULzy8vx4EtbI8N+vpy+NjbX/u9toof/SGCYIrW5JOB32OvwXWpZiS"+
-            "K+jqG78TamSvtIIuW1Hq7uNDTR4SbQh4iIGY6QYGmFr1aulYfuSuME2pOf69vUfnd/kdq53AM5aq"+
-            "PYE1Iok6zAtntfKdQInmPgi5yA6g8X0Z2HwCkX3ncuJ/L13nOr4aj+BC1qsrRiIxNfuG0sSQg/xT"+
-            "UHrEjZpshYNVaAL/5do/Tip4tS81PVt2EID4I2OMoFitgRuKteDeJlqpQSyGh8uTNdf5REETe4aQ"+
-            "PXs9WA9bzF1+PQIDAQABoyEwHzAdBgNVHQ4EFgQUmGNekK0CP4LqIt3imr62Z+om1+0wDQYJKoZI"+
-            "hvcNAQELBQADggEBAFl6+NDvnZVNJZ/PRVianLZHdlLDAxL90wZ3w2YcUOlLtkvfDZMsz62iu13b"+
-            "cTv0mdlgjFLVbVgzykzGHKYg4AhYtOXlcq/WsWQty862NkolwRPLRgFtbTDU3AnMDN/9RwBBbV38"+
-            "gOHdgF0VTtOV1UDqXt549KIkfx/+3co39TbbOnuXNsOu1zjRL9poUzH8g7KUUsRCjkKKfzQdQsrA"+
-            "EdV8DVBUhNSU4b/AQ+SvlVqRCEKNI/GFDgqorAoG4sBglWHxroAon3OPP4kxpUTWve2dac3WlNFG"+
-            "JBwVAi7DdT1NiGc/sWRW21VlYH6eRjbkhgRFnfu2sjY/KbhpfpLibZE=\n"+
-            "-----END CERTIFICATE-----";
+    private String bendiceshi ="-----BEGIN CERTIFICATE-----\n"+
+        "MIIDQzCCAiugAwIBAgIEZsfnUTANBgkqhkiG9w0BAQsFADBRMQswCQYDVQQGEwJj\n"+
+        "bjEKMAgGA1UECBMBczEKMAgGA1UEBxMBczEKMAgGA1UEChMBczEKMAgGA1UECxMB\n"+
+        "czESMBAGA1UEAxMJbG9jYWxob3N0MCAXDTE4MDcwNTAyNTYyN1oYDzIxMTgwNjEx\n"+
+        "MDI1NjI3WjBRMQswCQYDVQQGEwJjbjEKMAgGA1UECBMBczEKMAgGA1UEBxMBczEK\n"+
+        "MAgGA1UEChMBczEKMAgGA1UECxMBczESMBAGA1UEAxMJbG9jYWxob3N0MIIBIjAN\n"+
+        "BgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkz44kCElk2SMwuqpl6UAeR0Xh9Nv\n"+
+        "+TaPDj+OZaD3bpPRygJRELXbmgn2AZ5h5nNts8L+hFSeCwHRq5TfbbXYsAjM6JRT\n"+
+        "37fW/bZo34DSua+1mRIqHb9/HL8fSFk96cNQd7wUad77SOesNl5DW+UIqoJWRloN\n"+
+        "bLFcBLEssPOou85Q0J/K1GtXCdtv45/wR/c2bZ57OARmgqCWb6tJoFWZLtlJTFuY\n"+
+        "zeIv44YDIMOK6nNwc7nR1DlY4/NWRhayBINbzupLcjLY/O57wiBp3jL5U7Xvxw+R\n"+
+        "KFzgDq9vJc/K/P4dCLN2/ZNmQt5LLxFV+3COqpGSg/kPlptwHgANDJ6GTwIDAQAB\n"+
+        "oyEwHzAdBgNVHQ4EFgQUuux+6ot808C3eW+CV2UIuhN+CYMwDQYJKoZIhvcNAQEL\n"+
+        "BQADggEBAHJKaR8bdKNw+Qr65Nwr/YFRSk6pmKkHBbkUR85IY/rOKZNvwxszM04X\n"+
+        "AdIMN67zFh5SiBNdHdyr6OpaTszcn34ANhm6aSdZ22O/Mix6xa4nxmlxirnGBs8P\n"+
+        "zcI2SsUEZeV8v8A0kdetpPLfL9aaezzFJ+PTCMidGMYxNUQ2w9LCloL6Ki2quYll\n"+
+        "66j7T7+KmFu+Ls5elRI8vm7aWPG2Q2UMcNWjhlx8D8O/xAcy9QBk5eTyziqYry4B\n"+
+        "b4GoNZBN/jDjWHGL9+l83Zn083t2HqD2LL5929Afjjxe6KZcxkXVJE4m65EK4Swq\n"+
+        "SbclgPEvuANkY1S8uxUUSebNGBIa+Eo=\n"+
+        "-----END CERTIFICATE-----";
 
-    private String bendiceshi_ip = "-----BEGIN CERTIFICATE-----\n"+
-            "MIIDSzCCAjOgAwIBAgIEK6InATANBgkqhkiG9w0BAQsFADBVMQswCQYDVQQGEwJjbjEKMAgGA1UE"+
-            "CBMBczEKMAgGA1UEBxMBczEKMAgGA1UEChMBczEKMAgGA1UECxMBczEWMBQGA1UEAxMNMTkyLjE2"+
-            "OC4xLjEwNDAgFw0xODA3MDQxNDQ5MTFaGA8yMTE4MDYxMDE0NDkxMVowVTELMAkGA1UEBhMCY24x"+
-            "CjAIBgNVBAgTAXMxCjAIBgNVBAcTAXMxCjAIBgNVBAoTAXMxCjAIBgNVBAsTAXMxFjAUBgNVBAMT"+
-            "DTE5Mi4xNjguMS4xMDQwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCPS7XBTvGrfXON"+
-            "qhh7wsLHkdy02asTSEn/xB1tTCXxkEZLJMQKivvIOrW4oBxJlxrehkNq+FWobXsANLDnb+djW8LG"+
-            "79UbbTQkNGlSZMcbCpyvoJwFGuKrne08toV/h7azcw4BYcRobi/6o7r0YFaAxpgR9gzkzkXJi3oq"+
-            "9zrShToEnklBtAg2XVKvfs0MN1v6zMZ9NKBazuVLcufVkXlwbMhsavneholNZxxGWRnhKwEQl8zQ"+
-            "A5B9v4KqCyjoKnjUxPtziYtXEtP2f7lqVCZ9+oVXKoybRQsEKxOwM/CS7NBMlq6NO4lp8tvhHITI"+
-            "9/yCXWIX1YxjIRhjsM/nju8xAgMBAAGjITAfMB0GA1UdDgQWBBS93iqvpzCPNbRDKLksNN3Tg2k5"+
-            "NzANBgkqhkiG9w0BAQsFAAOCAQEAiyGnOkCkXASxEKkft81HPACDz4mz4cjyI8bJHWOGdvgMtEEg"+
-            "BrxBBaOt2B46JAiC8K8baYNwpjpVxnFOhDItPwpC96iFv7h7/PouhFiTTmC2q5y+aIfUSJY3l22W"+
-            "WMtH3iQzUl649PSpw1n/FsY4eIZ1eRp2xLFlH4E2e2qnCL/XSXXQbeZ1WbQQ4Th0/IUYvLcD7xxl"+
-            "6hoDn2B+0GXzKirIl5xMdTb9el/pITemtLRNq13b78yyqkbKX0wyBnJIKqZHHwljZi3uoSYIKzu7"+
-            "9w9z4dzQVtNYX/8ix5eu2/dVDvHvpNkxdhy4zt+NG59d0iiCeAlL5STMWmEEc8k3tA==\n"+
+    private String bendiceshi_ip ="-----BEGIN CERTIFICATE-----\n"+
+            "MIIDSTCCAjGgAwIBAgIEe4CPxTANBgkqhkiG9w0BAQsFADBUMQswCQYDVQQGEwJj\n"+
+            "bjEKMAgGA1UECBMBczEKMAgGA1UEBxMBczEKMAgGA1UEChMBczEKMAgGA1UECxMB\n"+
+            "czEVMBMGA1UEAxMMMTkyLjE2OC4wLjEyMCAXDTE4MDcwNTAyNTY1NFoYDzIxMTgw\n"+
+            "NjExMDI1NjU0WjBUMQswCQYDVQQGEwJjbjEKMAgGA1UECBMBczEKMAgGA1UEBxMB\n"+
+            "czEKMAgGA1UEChMBczEKMAgGA1UECxMBczEVMBMGA1UEAxMMMTkyLjE2OC4wLjEy\n"+
+            "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl658SgbRwvgwiP0LB1i7\n"+
+            "mNUTWpmlWXwXd3hiYUshgHWYDStIK+lX9SkRM8v/1amC4FvxIkJq4KQpnaUjDMpi\n"+
+            "4Rx9xCPFEWRvtlFag8L65vBax8W6x3p4uVGTxTANU9d8esKJWfCsyHR476vOaJBz\n"+
+            "Nv7Ig7dkWEMN8Zww7Mak37Cm9Cj0s/23R3QyaQE9MlLwQg29emEIPkPV700BqemE\n"+
+            "EIdBfylDuIhhpeJkwfGVyjkRnPjC4B3pgdVylNTfs6bU6CIPhW58ED64P+Oi2lJI\n"+
+            "kSspjBMS6Dd3cayw8vHkdwrx060pqxrMmiokUwDGRLlgW7v2Das5fsd2AI2LQlg/\n"+
+            "oQIDAQABoyEwHzAdBgNVHQ4EFgQUP95xrzOb4h0F97WyNz2J9jxDIk0wDQYJKoZI\n"+
+            "hvcNAQELBQADggEBAEmZEasGj7fMf3ynWoEdotQryH4/PFhwsvqz30sra+JJm06O\n"+
+            "ypTyBexSleTUF0gZY1rKv8r65W8VVOOFgXomlSW6YsCm45xd3rVbNpF1+K1i63q7\n"+
+            "jGQGeL6+7XgrMHDBS3K6l8h1pSwNJ65enEwsl4kgZWHnDvxJ+QB3JNXQ8RkvhJjX\n"+
+            "byIsAftryyU+RWbyJM9GwVENck4PXzWImikR2ESon7Hv/DvckbYneLrHXHhKFTQg\n"+
+            "AaKY7npVPuNY40kGsaxo8sr3i8WHnY49D0jevFZyfk+o/Sm9t7MawVCNdVzWTO5e\n"+
+            "fL9CaOCmrQCCTxII3JQHnJadbCX598Mzft+QErA=\n"+
             "-----END CERTIFICATE-----";
 
 
@@ -84,66 +91,102 @@ public class MyApplication extends Application{
     public void onCreate() {
         super.onCreate();
 
-        HttpsUtils.SSLParams sslParams = null;
 
-        InputStream inbendiceshi_ip = new Buffer().writeUtf8(bendiceshi_ip).inputStream();
+        /**
+         * [1]绕过所有的证书--不推荐；
+         */
+//        HttpsUtils.SSLParams sslParams = HttpsUtils.getSslSocketFactory(null, null, null);
+
+
+
+        /**
+         * [2]输入证书
+         *
+         * 输入字符串：keytool -printcert -rfc -file bendiceshi_ip.cer
+         * 输入字符串：keytool -printcert -rfc -file bendiceshi.cer*/
+
+            /*InputStream inCerIp = getApplicationContext().getClass().getClassLoader().getResourceAsStream("assets/bendiceshi_ip.cer");
+            InputStream inCer = getApplicationContext().getClass().getClassLoader().getResourceAsStream("assets/bendiceshi.cer");
+*/
+        //在As中使用此方法获取资源不成功；
+//            InputStream inCerIp = getAssets().open("bendiceshi_ip.cer");
+//            InputStream inCer = getAssets().open("bendiceshi.cer");
+
+           /* InputStream [] ins = new InputStream[]{inCerIp,inCer};
+
+            HttpsUtils.SSLParams sslParams1 = HttpsUtils.getSslSocketFactory(ins, null, null);
+
+            OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                    .sslSocketFactory(sslParams1.sSLSocketFactory, sslParams1.trustManager)
+                    .connectTimeout(10000L, TimeUnit.MILLISECONDS)
+                    .readTimeout(10000L, TimeUnit.MILLISECONDS)  //读时间不能过短，否则请求读取无法成功；
+                    .hostnameVerifier(new HostnameVerifier() {
+                        @Override
+                        public boolean verify(String hostname, SSLSession session) {
+                            //强行返回true 即验证成功
+                            return true;
+                        }
+                    })
+                    .build();
+            OkHttpUtils.initClient(okHttpClient);*/
+
+
+
+
+        /**
+         * [3] 将证书转换为String直接读取；--测试成功；
+         */
+      /*  InputStream inbendiceshi_ip = new Buffer().writeUtf8(bendiceshi_ip).inputStream();
         InputStream inbendiceshi = new Buffer().writeUtf8(bendiceshi).inputStream();
-
-
         InputStream [] ins = new InputStream[]{inbendiceshi_ip,inbendiceshi};
 
-        sslParams = HttpsUtils.getSslSocketFactory(ins, null, null);
-//        sslParams = HttpsUtils.getSslSocketFactory(null, null, null);
+        HttpsUtils.SSLParams sslParams1 = HttpsUtils.getSslSocketFactory(ins, null, null);
 
-//        HttpsUtils.SSLParams sslParams = HttpsUtils.getSslSocketFactory(null, null, null);
         OkHttpClient okHttpClient = new OkHttpClient.Builder()
-                .sslSocketFactory(sslParams.sSLSocketFactory, sslParams.trustManager)
-                .readTimeout(2000L,TimeUnit.MILLISECONDS)
-                .connectTimeout(2000L,TimeUnit.MILLISECONDS)
-                .writeTimeout(2000L,TimeUnit.MILLISECONDS)
-         .build();
+                .sslSocketFactory(sslParams1.sSLSocketFactory, sslParams1.trustManager)
+                .connectTimeout(10000L, TimeUnit.MILLISECONDS)
+                .readTimeout(10000L, TimeUnit.MILLISECONDS)  //读时间不能过短，否则请求读取无法成功；
+                .hostnameVerifier(new HostnameVerifier() {
+                    @Override
+                    public boolean verify(String hostname, SSLSession session) {
+                        //强行返回true 即验证成功
+                        return true;
+                    }
+                })
+                .build();
+        OkHttpUtils.initClient(okHttpClient);*/
+
+
+        /**
+         * [4]双向认证
+         */
+
+        InputStream inCerIp = getApplicationContext().getClass().getClassLoader().getResourceAsStream("assets/bendiceshi_ip.cer");
+        InputStream inCer = getApplicationContext().getClass().getClassLoader().getResourceAsStream("assets/bendiceshi.cer");
+        InputStream [] ins = new InputStream[]{inCerIp,inCer};
+
+        InputStream inCerBks = getApplicationContext().getClass().getClassLoader().getResourceAsStream("assets/ozTaking_client.bks");
+
+        /**
+         *参数1：证书的inputstream
+         *参数2：本地证书的inputstream
+         *参数3：本地证书的密码
+         */
+        HttpsUtils.SSLParams sslParams1 = HttpsUtils.getSslSocketFactory(ins, inCerBks, "123456");
+
+        OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                .sslSocketFactory(sslParams1.sSLSocketFactory, sslParams1.trustManager)
+                .connectTimeout(10000L, TimeUnit.MILLISECONDS)
+                .readTimeout(10000L, TimeUnit.MILLISECONDS)  //读时间不能过短，否则请求读取无法成功；
+                .hostnameVerifier(new HostnameVerifier() {
+                    @Override
+                    public boolean verify(String hostname, SSLSession session) {
+                        //强行返回true 即验证成功
+                        return true;
+                    }
+                })
+                .build();
         OkHttpUtils.initClient(okHttpClient);
-
-     /*   try {
-            //[1]此处使用的是assets文件夹下的srca.cer文件输入证书的；
-//            OkHttpUtils.initClient(setCertificates(getAssets().open("srca.cer")));
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
-
-        /**
-         *[2]使用String字符串代替证书文件
-         *
-         * [cmd命令]
-         * keytool -printcert -rfc -file srca.cer
-         */
-//        OkHttpClient okHttpClient = null;
-//        try {
-//            okHttpClient = setCertificates(new Buffer().writeUtf8(cer_12306).inputStream(),
-//                    new Buffer().writeUtf8(bendiceshi).inputStream(),
-//                    new Buffer().writeUtf8(bendiceshi_ip).inputStream(),
-//                    getAssets().open("ozTaking_server.cer")
-////                    getAssets().open("bendiceshi.cer"),
-////                    getAssets().open("bendiceshi_ip.cer")
-//                    );
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        OkHttpUtils.initClient(okHttpClient);
-
-        /**
-         * [3]
-         * 生成自签名的证书
-         * keytool -genkey -alias ozTaking_server -keyalg RSA -keystore ozTaking_server.jks -validity 3600 -storepass 88888
-         *
-         * [4]
-         *签发证书
-         *G:\001_Android\005_okhttp\07-https\12306 cer>keytool -export -alias ozTaking_ser
-         *ver -file ozTaking_server.cer -keystore ozTaking_server.jks -storepass 888888
-         *存储在文件 <ozTaking_server.cer> 中的证书
-         *
-         */
 
     }
 
